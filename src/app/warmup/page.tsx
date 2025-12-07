@@ -6,18 +6,18 @@ import { useWarmupSession } from '@/core/engine/useWarmupSession';
 import { WarmupPhase } from '@/core/engine/types';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import Target from '@/components/Target';
 
 const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.IDLE]: 'Get Ready',
   [WarmupPhase.CALIBRATION]: 'Align your face with the camera',
-  [WarmupPhase.SACCADE]: 'Snap your eyes quickly to the red dot',
-  [WarmupPhase.SMOOTH_PURSUIT]: 'Follow the dot smoothly with your eyes',
+  [WarmupPhase.SACCADE]: 'Snap your eyes quickly to the crosshair',
+  [WarmupPhase.SMOOTH_PURSUIT]: 'Follow the crosshair smoothly with your eyes',
   [WarmupPhase.PERIPHERAL]: 'Keep looking center, notice the flashes',
   [WarmupPhase.REACTION_1]: 'React quickly! Look at the new target instantly (Speed 1)',
   [WarmupPhase.REACTION_2]: 'Faster! (Speed 2)',
   [WarmupPhase.REACTION_3]: 'Maximum Speed! (Speed 3)',
-  [WarmupPhase.STABILITY]: 'Stare at the center dot. Do not move your eyes.',
+  [WarmupPhase.STABILITY]: 'Fixate on the center dot. Do not move your eyes.',
   [WarmupPhase.COMPLETED]: 'Session Complete',
 };
 
@@ -34,7 +34,7 @@ export default function WarmupPage() {
 
   useEffect(() => {
     if (phase === WarmupPhase.COMPLETED) {
-      // Navigate to results with scores (in a real app, save to DB here)
+      // Navigate to results with scores
       const query = encodeURIComponent(JSON.stringify(scores));
       router.push(`/dashboard?scores=${query}`);
     }
@@ -51,16 +51,12 @@ export default function WarmupPage() {
         muted
       />
 
-      {/* Target */}
+      {/* Target Component */}
       {(phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) && (
-        <div
-          className={`absolute w-6 h-6 bg-[#ff0080] rounded-full shadow-[0_0_20px_#ff0080] ${phase === WarmupPhase.STABILITY ? 'animate-pulse' : ''}`}
-          style={{
-            left: `${(targetPosition?.x || 0.5) * 100}%`,
-            top: `${(targetPosition?.y || 0.5) * 100}%`,
-            transform: 'translate(-50%, -50%)',
-            transition: (phase === WarmupPhase.SACCADE || phase.startsWith('reaction')) ? 'none' : 'left 0.1s linear, top 0.1s linear',
-          }}
+        <Target 
+          x={targetPosition?.x || 0.5} 
+          y={targetPosition?.y || 0.5} 
+          isStability={phase === WarmupPhase.STABILITY}
         />
       )}
 
