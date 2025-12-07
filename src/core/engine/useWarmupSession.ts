@@ -24,6 +24,8 @@ export const useWarmupSession = () => {
   const [targetPosition, setTargetPosition] = useState<Point>({ x: 0.5, y: 0.5 });
   const requestRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
+  // Add a ref to track reaction test state
+  const reactionStateRef = useRef<{ lastSwitch: number, visible: boolean }>({ lastSwitch: 0, visible: true });
 
   const startSession = useCallback(() => {
     setPhase(WarmupPhase.CALIBRATION);
@@ -95,6 +97,8 @@ export const useWarmupSession = () => {
         setTargetPosition({ x: 0.8, y: 0.5 });
       }
     } else if (phase === WarmupPhase.STABILITY) {
+      // Stability should be fixed at center, but maybe add micro-jitter to simulate holding an angle?
+      // For now, keep it centered as per "fixate on tiny dot"
       setTargetPosition({ x: 0.5, y: 0.5 });
     } else if (phase === WarmupPhase.PERIPHERAL) {
         // Flash random corners
@@ -102,6 +106,22 @@ export const useWarmupSession = () => {
         const step = Math.floor(t / interval);
         const corners = [{x:0.1,y:0.1}, {x:0.9,y:0.1}, {x:0.1,y:0.9}, {x:0.9,y:0.9}];
         setTargetPosition(corners[step % 4]);
+    } else if (phase === WarmupPhase.REACTION) {
+        // Reaction: Randomly appear in different spots quickly
+        // Change position every 0.8 seconds
+        const interval = 0.8; 
+        const step = Math.floor(t / interval);
+        
+        // Deterministic pseudo-random positions based on time step to avoid flickering in React
+        const pseudoRandom = (seed: number) => {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+        
+        const rx = 0.1 + (pseudoRandom(step) * 0.8);
+        const ry = 0.1 + (pseudoRandom(step + 100) * 0.8);
+        
+        setTargetPosition({ x: rx, y: ry });
     }
 
     requestRef.current = requestAnimationFrame(animate);
