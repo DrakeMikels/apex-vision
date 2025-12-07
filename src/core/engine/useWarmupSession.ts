@@ -79,7 +79,8 @@ export const useWarmupSession = () => {
       const avgError = sum / arr.length;
       // Adjusted scoring heuristic: error of 0.4 (approx screen width/2) should be 0 score
       // Reduced sensitivity further to prevent 0 scores. 0.5 error (half screen) -> 50 score
-      const score = Math.max(0, Math.min(100, 100 - (avgError * 80))); 
+      // Further relaxed: 0.5 error -> 75 score (Multiplier 50)
+      const score = Math.max(0, Math.min(100, 100 - (avgError * 50))); 
       console.log('Calculating score:', arr.length, 'samples, avg error:', avgError, 'final:', score);
       return Math.round(score);
     };
