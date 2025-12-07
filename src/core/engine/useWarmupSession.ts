@@ -16,6 +16,7 @@ export const useWarmupSession = () => {
   
   // Calibration State
   const calibrationSamplesRef = useRef<Point[]>([]);
+  const calibrationPointsRef = useRef<{ left: Point | null; right: Point | null }>({ left: null, right: null });
 
   // Use a ref to accumulate real score data
   const scoreAccumulatorRef = useRef<{
