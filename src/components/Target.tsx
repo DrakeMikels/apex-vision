@@ -42,9 +42,8 @@ export default function Target({ x, y, isStability }: TargetProps) {
 
         {/* The Box Target */}
         <motion.div
-          className={`w-14 h-14 border-2 border-[#ff0080] bg-[#ff0080]/10 backdrop-blur-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,0,128,0.5)] ${isStability ? 'animate-pulse' : ''}`}
+          className={`w-10 h-10 rounded-full border-2 border-[#ff0080] bg-[#ff0080]/10 backdrop-blur-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,0,128,0.5)] ${isStability ? 'animate-pulse' : ''}`}
           animate={{ 
-            rotate: isStability ? 45 : 0,
             scale: isStability ? 0.8 : 1
           }}
           transition={{ duration: 0.5 }}
