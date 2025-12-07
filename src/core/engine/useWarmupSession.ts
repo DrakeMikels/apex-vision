@@ -221,7 +221,7 @@ export const useWarmupSession = () => {
         break;
       case WarmupPhase.GRID_SHOT:
         setPhase(WarmupPhase.STABILITY);
-        setTimeLeft(PHASE_DURATION_30S);
+        setTimeLeft(15); // Reduced to 15 seconds
         break;
       case WarmupPhase.STABILITY:
         setPhase(WarmupPhase.COMPLETED);
@@ -265,8 +265,8 @@ export const useWarmupSession = () => {
     } else if (phase === WarmupPhase.STABILITY) {
       setTargetPosition({ x: 0.5, y: 0.5 });
       
-      // Distractors logic
-      const distractorInterval = 2.5; // Every 2.5 seconds
+      // Distractors logic - faster for shorter duration
+      const distractorInterval = 1.5; // Reduced from 2.5s to 1.5s
       const cycle = Math.floor(t / distractorInterval);
       const subTime = t % distractorInterval;
       
