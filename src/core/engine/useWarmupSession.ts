@@ -58,7 +58,8 @@ export const useWarmupSession = () => {
       // Map raw distance error (0 to ~0.5) to a score (0-100)
       // 0 error = 100, 0.3 error = 0
       const avgError = sum / arr.length;
-      const score = Math.max(0, Math.min(100, 100 - (avgError * 300))); // Heuristic scaling
+      // Adjusted scoring heuristic: error of 0.4 (approx screen width/2) should be 0 score
+      const score = Math.max(0, Math.min(100, 100 - (avgError * 250))); 
       return Math.round(score);
     };
 
