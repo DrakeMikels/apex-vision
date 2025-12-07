@@ -80,16 +80,32 @@ function WarmupContent() {
 
           {/* Grid Shot Feedback Indicator */}
           {gridShotFeedback && (
-             <div
-                key={gridShotFeedback.id}
-                className={`absolute pointer-events-none z-30 animate-[ping_0.5s_ease-out] w-20 h-20 rounded-full border-4 opacity-0`}
-                style={{
-                    left: `${targetPosition.x * 100}%`,
-                    top: `${targetPosition.y * 100}%`,
-                    transform: 'translate(-50%, -50%)',
-                    borderColor: gridShotFeedback.color === 'green' ? '#4ade80' : gridShotFeedback.color === 'yellow' ? '#facc15' : '#ef4444'
-                }}
-             />
+            <>
+                {/* Ping Animation */}
+                <div
+                    key={`ping-${gridShotFeedback.id}`}
+                    className={`absolute pointer-events-none z-30 animate-[ping_0.5s_ease-out] w-20 h-20 rounded-full border-4 opacity-0`}
+                    style={{
+                        left: `${targetPosition.x * 100}%`,
+                        top: `${targetPosition.y * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        borderColor: gridShotFeedback.color === 'green' ? '#4ade80' : gridShotFeedback.color === 'yellow' ? '#facc15' : '#ef4444'
+                    }}
+                />
+                {/* Text Feedback */}
+                <div
+                    key={`text-${gridShotFeedback.id}`}
+                    className={`absolute pointer-events-none z-40 animate-out fade-out slide-out-to-top-4 duration-700 font-black uppercase tracking-widest text-2xl text-glow`}
+                    style={{
+                        left: `${targetPosition.x * 100}%`,
+                        top: `${targetPosition.y * 100}%`,
+                        transform: 'translate(-50%, -200%)',
+                        color: gridShotFeedback.color === 'green' ? '#4ade80' : gridShotFeedback.color === 'yellow' ? '#facc15' : '#ef4444'
+                    }}
+                >
+                    {gridShotFeedback.color === 'green' ? 'PERFECT' : gridShotFeedback.color === 'yellow' ? 'GOOD' : 'SLOW'}
+                </div>
+            </>
           )}
         </>
       )}

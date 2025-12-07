@@ -398,27 +398,31 @@ export const useWarmupSession = () => {
      }
 
      if (phase === WarmupPhase.GRID_SHOT) {
-        // Distance Threshold for "Locking On"
-        // Target size is roughly 10% (0.1). So 0.15 distance is generous.
-        if (distance < 0.15) {
+        // Relaxed threshold for better usability (25% of screen width radius)
+        const targetThreshold = 0.25; 
+        const dwellTimeThreshold = 80; // Reduced to 80ms for snappier feel
+
+        if (distance < targetThreshold) {
             if (!gridShotRef.current.dwellStartTime) {
                 gridShotRef.current.dwellStartTime = performance.now();
             } else {
                 const dwellDuration = performance.now() - gridShotRef.current.dwellStartTime;
-                if (dwellDuration > 100 && !gridShotRef.current.isLocked) { // 100ms dwell to confirm
+                if (dwellDuration > dwellTimeThreshold && !gridShotRef.current.isLocked) {
                     // TARGET HIT!
                     gridShotRef.current.isLocked = true;
                     
                     const reactionTime = performance.now() - gridShotRef.current.lastSpawnTime;
                     let feedbackColor: 'green' | 'yellow' | 'red' = 'red';
-                    if (reactionTime < 500) feedbackColor = 'green';
-                    else if (reactionTime < 900) feedbackColor = 'yellow';
+                    // Relaxed reaction time thresholds
+                    if (reactionTime < 600) feedbackColor = 'green';
+                    else if (reactionTime < 1200) feedbackColor = 'yellow';
                     
                     setGridShotFeedback({ color: feedbackColor, id: Date.now() });
                     
                     // Move to new random position immediately
-                    const nextX = 0.1 + Math.random() * 0.8;
-                    const nextY = 0.1 + Math.random() * 0.8;
+                    // Keep within 15-85% to avoid edge tracking issues
+                    const nextX = 0.15 + Math.random() * 0.7;
+                    const nextY = 0.15 + Math.random() * 0.7;
                     setTargetPosition({ x: nextX, y: nextY });
                     
                     // Reset for next target
@@ -426,9 +430,7 @@ export const useWarmupSession = () => {
                     gridShotRef.current.dwellStartTime = null;
                     gridShotRef.current.isLocked = false;
                     
-                    // Add score bonus?
-                    // We can reuse 'reaction' score accumulator for now, pushing a "perfect" score (0 distance)
-                    // or negative distance? No, let's just push 0 distance to boost average.
+                    // Add perfect score to reaction accumulator
                     scoreAccumulatorRef.current.reaction.push(0); 
                 }
             }
