@@ -28,21 +28,38 @@ function Heatmap({ points }: { points: Array<{x: number, y: number}> }) {
 
     // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Radar Grid
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const maxRadius = Math.min(cx, cy) - 20;
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+
+    // Concentric circles
+    for (let r = 0.2; r <= 1.0; r += 0.2) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, maxRadius * r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Crosshairs
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - maxRadius);
+    ctx.lineTo(cx, cy + maxRadius);
+    ctx.moveTo(cx - maxRadius, cy);
+    ctx.lineTo(cx + maxRadius, cy);
+    ctx.stroke();
     
     // Draw semi-transparent circles for each point
     // High density areas will become brighter/more opaque
     points.forEach(p => {
-        // Map normalized 0-1 coords to canvas dims
-        // x is 0-1 (0 is left, 1 is right) - Mirroring might be needed if camera was mirrored?
-        // Tracking data is usually "screen relative" based on how we processed it. 
-        // In useEyeTracker, we didn't explicitly flip X for the data output, just for the video feed CSS.
-        // Assuming X=0 is left.
-        
         const x = p.x * canvas.width;
         const y = p.y * canvas.height;
         
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
-        gradient.addColorStop(0, 'rgba(255, 0, 128, 0.1)'); // Core
+        gradient.addColorStop(0, 'rgba(255, 0, 128, 0.15)'); // Core
         gradient.addColorStop(1, 'rgba(255, 0, 128, 0)'); // Edge
         
         ctx.fillStyle = gradient;
@@ -59,14 +76,11 @@ function Heatmap({ points }: { points: Array<{x: number, y: number}> }) {
             ref={canvasRef} 
             width={640} 
             height={360} 
-            className="w-full h-full opacity-80"
+            className="w-full h-full opacity-100"
         />
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[1px] h-full bg-white/10"></div>
-            <div className="absolute w-full h-[1px] bg-white/10"></div>
-        </div>
-        <div className="absolute bottom-2 right-2 text-xs text-zinc-500">
-            Gaze Density Map
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)] pointer-events-none"></div>
+        <div className="absolute bottom-2 right-2 text-xs text-zinc-500 font-mono">
+            RADAR::GAZE_DENSITY
         </div>
     </div>
   );
@@ -191,6 +205,12 @@ function DashboardContent() {
                     <div className="h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#ff0080" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#ff0080" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                                 <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} />
                                 <YAxis stroke="#666" fontSize={12} tickLine={false} domain={[0, 100]} />
@@ -202,9 +222,10 @@ function DashboardContent() {
                                     type="monotone" 
                                     dataKey="score" 
                                     stroke="#ff0080" 
-                                    strokeWidth={3} 
-                                    dot={{ fill: '#ff0080', strokeWidth: 0 }}
-                                    activeDot={{ r: 6, fill: '#fff' }}
+                                    strokeWidth={4}
+                                    dot={{ fill: '#ff0080', strokeWidth: 0, r: 4 }}
+                                    activeDot={{ r: 8, fill: '#fff' }}
+                                    fill="url(#scoreGradient)"
                                 />
                             </LineChart>
                         </ResponsiveContainer>
