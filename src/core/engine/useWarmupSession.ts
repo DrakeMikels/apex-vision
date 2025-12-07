@@ -324,8 +324,22 @@ export const useWarmupSession = () => {
         
         setTargetPosition({ x: rx, y: ry });
     } else if (phase === WarmupPhase.GRID_SHOT) {
-        // Static target, moves only on hit (handled in processFrame)
-        // No animation loop logic needed for position, but we need to ensure loop runs for consistency
+        // Auto-advance if target is not hit within 2 seconds
+        const timeAlive = performance.now() - gridShotRef.current.lastSpawnTime;
+        if (timeAlive > 2000) {
+            // TIMEOUT / MISS
+            setGridShotFeedback({ color: 'red', id: Date.now() });
+            
+            // Move to new random position
+            const nextX = 0.15 + (Math.random() * 0.7);
+            const nextY = 0.15 + (Math.random() * 0.7);
+            setTargetPosition({ x: nextX, y: nextY });
+            
+            // Reset for next target
+            gridShotRef.current.lastSpawnTime = performance.now();
+            gridShotRef.current.dwellStartTime = null;
+            gridShotRef.current.isLocked = false;
+        }
     }
 
     requestRef.current = requestAnimationFrame(animate);

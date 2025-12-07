@@ -103,7 +103,7 @@ function WarmupContent() {
                         color: gridShotFeedback.color === 'green' ? '#4ade80' : gridShotFeedback.color === 'yellow' ? '#facc15' : '#ef4444'
                     }}
                 >
-                    {gridShotFeedback.color === 'green' ? 'PERFECT' : gridShotFeedback.color === 'yellow' ? 'GOOD' : 'SLOW'}
+                    {gridShotFeedback.color === 'green' ? 'PERFECT' : gridShotFeedback.color === 'yellow' ? 'GOOD' : 'MISS'}
                 </div>
             </>
           )}
