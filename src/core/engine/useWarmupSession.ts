@@ -83,10 +83,18 @@ export const useWarmupSession = () => {
         setTimeLeft(PHASE_DURATION_30S);
         break;
       case WarmupPhase.SMOOTH_PURSUIT:
-        setPhase(WarmupPhase.PERIPHERAL);
-        setTimeLeft(PHASE_DURATION_30S);
+        setPhase(WarmupPhase.PERIPHERAL_1);
+        setTimeLeft(PHASE_DURATION_10S);
         break;
-      case WarmupPhase.PERIPHERAL:
+      case WarmupPhase.PERIPHERAL_1:
+        setPhase(WarmupPhase.PERIPHERAL_2);
+        setTimeLeft(PHASE_DURATION_10S);
+        break;
+      case WarmupPhase.PERIPHERAL_2:
+        setPhase(WarmupPhase.PERIPHERAL_3);
+        setTimeLeft(PHASE_DURATION_10S);
+        break;
+      case WarmupPhase.PERIPHERAL_3:
         setPhase(WarmupPhase.REACTION_1);
         setTimeLeft(PHASE_DURATION_10S);
         break;
@@ -137,12 +145,21 @@ export const useWarmupSession = () => {
       }
     } else if (phase === WarmupPhase.STABILITY) {
       setTargetPosition({ x: 0.5, y: 0.5 });
-    } else if (phase === WarmupPhase.PERIPHERAL) {
-        const interval = 2; // seconds
+    } else if (phase.startsWith('peripheral')) {
+        // Peripheral: 3 Stages
+        let interval = 2.0; // Stage 1
+        
+        if (phase === WarmupPhase.PERIPHERAL_2) {
+            interval = 1.6; // Stage 2: 25% faster (2.0 * 0.8 = 1.6)
+        } else if (phase === WarmupPhase.PERIPHERAL_3) {
+            interval = 1.28; // Stage 3: 25% faster (1.6 * 0.8 = 1.28)
+        }
+
         const step = Math.floor(t / interval);
         const corners = [{x:0.1,y:0.1}, {x:0.9,y:0.1}, {x:0.1,y:0.9}, {x:0.9,y:0.9}];
+        // Deterministic corner sequence based on time step
         setTargetPosition(corners[step % 4]);
-    } else if (phase === WarmupPhase.REACTION_1 || phase === WarmupPhase.REACTION_2 || phase === WarmupPhase.REACTION_3) {
+    } else if (phase.startsWith('reaction')) {
         // Reaction: Explicit stages
         let interval = 1.0; // Stage 1
         
@@ -204,9 +221,9 @@ export const useWarmupSession = () => {
        scoreAccumulatorRef.current.saccade.push(distance);
      } else if (phase === WarmupPhase.SMOOTH_PURSUIT) {
        scoreAccumulatorRef.current.smoothPursuit.push(distance);
-     } else if (phase === WarmupPhase.PERIPHERAL) {
+     } else if (phase.startsWith('peripheral')) {
        scoreAccumulatorRef.current.peripheral.push(distance);
-     } else if (phase === WarmupPhase.REACTION_1 || phase === WarmupPhase.REACTION_2 || phase === WarmupPhase.REACTION_3) {
+     } else if (phase.startsWith('reaction')) {
        scoreAccumulatorRef.current.reaction.push(distance);
      } else if (phase === WarmupPhase.STABILITY) {
        scoreAccumulatorRef.current.stability.push(distance);

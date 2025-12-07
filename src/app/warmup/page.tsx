@@ -13,7 +13,9 @@ const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.CALIBRATION]: 'Align your face with the camera',
   [WarmupPhase.SACCADE]: 'Snap your eyes quickly to the crosshair',
   [WarmupPhase.SMOOTH_PURSUIT]: 'Follow the crosshair smoothly with your eyes',
-  [WarmupPhase.PERIPHERAL]: 'Keep looking center, notice the flashes',
+  [WarmupPhase.PERIPHERAL_1]: 'Keep looking center, notice the flashes (Level 1)',
+  [WarmupPhase.PERIPHERAL_2]: 'Faster! (Level 2)',
+  [WarmupPhase.PERIPHERAL_3]: 'Maximum Speed! (Level 3)',
   [WarmupPhase.REACTION_1]: 'React quickly! Look at the new target instantly (Speed 1)',
   [WarmupPhase.REACTION_2]: 'Faster! (Speed 2)',
   [WarmupPhase.REACTION_3]: 'Maximum Speed! (Speed 3)',
@@ -63,7 +65,7 @@ export default function WarmupPage() {
       {/* UI Overlay */}
       <div className="absolute top-8 left-0 right-0 text-center z-20 pointer-events-none px-4">
         <h2 className="text-3xl font-bold text-white uppercase tracking-wider drop-shadow-md text-glow">
-          {phase.replace(/_/g, ' ')}
+          {phase.replace(/_/g, ' ').replace(/\d/g, '')} 
         </h2>
         <p className="text-zinc-300 text-lg mt-1 drop-shadow-sm">{PHASE_INSTRUCTIONS[phase]}</p>
         {timeLeft > 0 && (
