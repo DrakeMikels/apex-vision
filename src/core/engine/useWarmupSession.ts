@@ -28,6 +28,12 @@ export const useWarmupSession = () => {
     stability: [],
   });
 
+  const gazeHistoryRef = useRef<Array<{x: number, y: number, phase: string}>>([]);
+  const calibrationRef = useRef<{ center: Point; scale: Point }>({
+    center: { x: 0.5, y: 0.5 },
+    scale: { x: 8.0, y: 12.0 }, // Heuristic sensitivity
+  });
+
   const [scores, setScores] = useState<WarmupScore>({
     saccade: 0,
     smoothPursuit: 0,
@@ -62,14 +68,38 @@ export const useWarmupSession = () => {
     const reactionScore = calcAverage(scoreAccumulatorRef.current.reaction);
     const stabilityScore = calcAverage(scoreAccumulatorRef.current.stability);
 
-    setScores({
+    const finalScores = {
       saccade: saccadeScore,
       smoothPursuit: smoothScore,
       peripheral: peripheralScore,
       reaction: reactionScore,
       stability: stabilityScore,
       overall: Math.round((saccadeScore + smoothScore + peripheralScore + reactionScore + stabilityScore) / 5),
-    });
+    };
+
+    setScores(finalScores);
+
+    // Save to Local Storage
+    try {
+        const historyItem = {
+            date: new Date().toISOString(),
+            scores: finalScores,
+            gazeHistory: gazeHistoryRef.current
+        };
+        
+        const existing = localStorage.getItem('apex_vision_history');
+        const history = existing ? JSON.parse(existing) : [];
+        history.push(historyItem);
+        // Keep last 10 sessions to avoid overflow
+        if (history.length > 10) history.shift();
+        
+        localStorage.setItem('apex_vision_history', JSON.stringify(history));
+        
+        // Also save current session for the dashboard redirect
+        localStorage.setItem('apex_vision_current_session', JSON.stringify(historyItem));
+    } catch (e) {
+        console.error("Failed to save session", e);
+    }
   };
 
   const nextPhase = useCallback(() => {
@@ -211,10 +241,40 @@ export const useWarmupSession = () => {
   const processFrame = useCallback((tracking: EyeTrackingResult) => {
      if (!tracking.faceDetected) return;
 
+     let gazeX = tracking.gaze.x;
+     let gazeY = tracking.gaze.y;
+
+     // Auto-calibration during the setup phase
+     if (phase === WarmupPhase.CALIBRATION) {
+        // Simple running average to find the "resting" center position
+        const alpha = 0.1;
+        calibrationRef.current.center.x = (calibrationRef.current.center.x * (1 - alpha)) + (gazeX * alpha);
+        calibrationRef.current.center.y = (calibrationRef.current.center.y * (1 - alpha)) + (gazeY * alpha);
+        return; // Don't score during calibration
+     }
+
+     // Apply calibration (Normalize to Screen 0-1)
+     // Formula: 0.5 + (raw - center) * scale
+     const calibratedX = 0.5 + (gazeX - calibrationRef.current.center.x) * calibrationRef.current.scale.x;
+     const calibratedY = 0.5 + (gazeY - calibrationRef.current.center.y) * calibrationRef.current.scale.y;
+
+     // Clamp to 0-1 for safety
+     const finalX = Math.max(0, Math.min(1, calibratedX));
+     const finalY = Math.max(0, Math.min(1, calibratedY));
+
      // Simple Euclidean distance
-     const dx = tracking.gaze.x - targetPosition.x;
-     const dy = tracking.gaze.y - targetPosition.y;
+     const dx = finalX - targetPosition.x;
+     const dy = finalY - targetPosition.y;
      const distance = Math.sqrt(dx*dx + dy*dy);
+
+     // Record gaze point
+     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.CALIBRATION && phase !== WarmupPhase.COMPLETED) {
+        gazeHistoryRef.current.push({
+            x: finalX,
+            y: finalY,
+            phase
+        });
+     }
 
      // Store data for scoring
      if (phase === WarmupPhase.SACCADE) {

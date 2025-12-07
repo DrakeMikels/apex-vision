@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,21 +8,110 @@ import { Progress } from '@/components/ui/progress';
 import { getRecommendations } from '@/core/engine/recommendations';
 import { WarmupScore } from '@/core/engine/types';
 import Link from 'next/link';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface SessionData {
+  date: string;
+  scores: WarmupScore;
+  gazeHistory: Array<{x: number, y: number, phase: string}>;
+}
+
+function Heatmap({ points }: { points: Array<{x: number, y: number}> }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !points) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw semi-transparent circles for each point
+    // High density areas will become brighter/more opaque
+    points.forEach(p => {
+        // Map normalized 0-1 coords to canvas dims
+        // x is 0-1 (0 is left, 1 is right) - Mirroring might be needed if camera was mirrored?
+        // Tracking data is usually "screen relative" based on how we processed it. 
+        // In useEyeTracker, we didn't explicitly flip X for the data output, just for the video feed CSS.
+        // Assuming X=0 is left.
+        
+        const x = p.x * canvas.width;
+        const y = p.y * canvas.height;
+        
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+        gradient.addColorStop(0, 'rgba(255, 0, 128, 0.1)'); // Core
+        gradient.addColorStop(1, 'rgba(255, 0, 128, 0)'); // Edge
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+  }, [points]);
+
+  return (
+    <div className="relative aspect-video w-full bg-zinc-900/50 rounded-xl overflow-hidden border border-zinc-800 box-glow">
+        <canvas 
+            ref={canvasRef} 
+            width={640} 
+            height={360} 
+            className="w-full h-full opacity-80"
+        />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[1px] h-full bg-white/10"></div>
+            <div className="absolute w-full h-[1px] bg-white/10"></div>
+        </div>
+        <div className="absolute bottom-2 right-2 text-xs text-zinc-500">
+            Gaze Density Map
+        </div>
+    </div>
+  );
+}
 
 function DashboardContent() {
   const searchParams = useSearchParams();
-  const scoresParam = searchParams.get('scores');
-  
-  let scores: WarmupScore | null = null;
-  try {
-    if (scoresParam) {
-      scores = JSON.parse(scoresParam);
-    }
-  } catch (e) {
-    console.error('Failed to parse scores', e);
-  }
+  const [currentSession, setCurrentSession] = useState<SessionData | null>(null);
+  const [history, setHistory] = useState<SessionData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!scores) {
+  useEffect(() => {
+    // Try to load from Local Storage
+    try {
+        const currentStr = localStorage.getItem('apex_vision_current_session');
+        const historyStr = localStorage.getItem('apex_vision_history');
+        
+        if (currentStr) {
+            setCurrentSession(JSON.parse(currentStr));
+        } else {
+            // Fallback to URL params if no local storage (legacy)
+            const scoresParam = searchParams.get('scores');
+            if (scoresParam) {
+                const scores = JSON.parse(scoresParam);
+                setCurrentSession({
+                    date: new Date().toISOString(),
+                    scores,
+                    gazeHistory: [] // No history in URL
+                });
+            }
+        }
+
+        if (historyStr) {
+            setHistory(JSON.parse(historyStr));
+        }
+    } catch (e) {
+        console.error("Error loading dashboard data", e);
+    } finally {
+        setLoading(false);
+    }
+  }, [searchParams]);
+
+  if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">Loading analysis...</div>;
+
+  if (!currentSession) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white p-4">
         <p className="mb-4 text-zinc-400">No session data found.</p>
@@ -33,11 +122,21 @@ function DashboardContent() {
     );
   }
 
+  const { scores, gazeHistory } = currentSession;
   const drills = getRecommendations(scores);
+  
+  // Format history for graph
+  const chartData = history.map((h, i) => ({
+    name: new Date(h.date).toLocaleDateString(undefined, {month: 'numeric', day: 'numeric'}),
+    score: h.scores.overall
+  }));
+
+  // If chart data is empty or has 1 item, add the current one just to show something if history wasn't saved yet?
+  // Actually history should include current if it was saved in useWarmupSession.
 
   return (
     <div className="min-h-screen bg-[#050505] text-white p-4 pb-20">
-      <div className="max-w-md mx-auto space-y-8">
+      <div className="max-w-2xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tighter text-glow">Readiness Report</h1>
@@ -58,14 +157,61 @@ function DashboardContent() {
           </CardContent>
         </Card>
 
+        {/* Heatmap */}
+        {gazeHistory.length > 0 && (
+            <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <span className="w-1 h-5 bg-[#7928ca] rounded-full"></span>
+                    Gaze Distribution
+                </h3>
+                <Heatmap points={gazeHistory} />
+                <p className="text-xs text-zinc-500">
+                    Visualization of your eye movements during the session. Denser areas indicate longer fixation.
+                </p>
+            </div>
+        )}
+
         {/* Detailed Metrics */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <ScoreCard label="Saccade Speed" value={scores.saccade} />
           <ScoreCard label="Smooth Pursuit" value={scores.smoothPursuit} />
           <ScoreCard label="Peripheral" value={scores.peripheral} />
           <ScoreCard label="Reaction Time" value={scores.reaction} />
           <ScoreCard label="Stability" value={scores.stability} />
         </div>
+
+        {/* Score History Graph */}
+        {history.length > 1 && (
+            <div className="space-y-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <span className="w-1 h-5 bg-[#ff0080] rounded-full"></span>
+                    Progress Over Time
+                </h3>
+                <Card className="bg-[#0a0a0a] border-zinc-800 p-4">
+                    <div className="h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} />
+                                <YAxis stroke="#666" fontSize={12} tickLine={false} domain={[0, 100]} />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#333', color: '#fff' }}
+                                    itemStyle={{ color: '#ff0080' }}
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="score" 
+                                    stroke="#ff0080" 
+                                    strokeWidth={3} 
+                                    dot={{ fill: '#ff0080', strokeWidth: 0 }}
+                                    activeDot={{ r: 6, fill: '#fff' }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+            </div>
+        )}
 
         {/* Recommendations */}
         <div className="space-y-4">
@@ -114,7 +260,7 @@ function ScoreCard({ label, value }: { label: string; value: number }) {
 
 export default function DashboardPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="min-h-screen bg-black text-white p-10 text-center">Loading...</div>}>
             <DashboardContent />
         </Suspense>
     )
