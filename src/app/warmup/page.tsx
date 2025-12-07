@@ -7,6 +7,7 @@ import { WarmupPhase } from '@/core/engine/types';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Target from '@/components/Target';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.IDLE]: 'Get Ready',
@@ -23,7 +24,7 @@ const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.COMPLETED]: 'Session Complete',
 };
 
-export default function WarmupPage() {
+function WarmupContent() {
   const router = useRouter();
   const { videoRef, trackingResult, error } = useEyeTracker();
   const { phase, timeLeft, targetPosition, startSession, nextPhase, processFrame, scores } = useWarmupSession();
@@ -120,5 +121,13 @@ export default function WarmupPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function WarmupPage() {
+  return (
+    <ErrorBoundary>
+      <WarmupContent />
+    </ErrorBoundary>
   );
 }

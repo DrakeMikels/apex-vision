@@ -155,7 +155,7 @@ export const useWarmupSession = () => {
     if (phase === WarmupPhase.IDLE || phase === WarmupPhase.COMPLETED || phase === WarmupPhase.CALIBRATION) return;
 
     // Calculate elapsed time since this phase started
-    const t = (time - startTimeRef.current) / 1000; // seconds
+    const t = Math.max(0, (time - startTimeRef.current) / 1000); // seconds, prevent negative time
 
     if (phase === WarmupPhase.SMOOTH_PURSUIT) {
       // Circle path
