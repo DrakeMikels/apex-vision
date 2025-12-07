@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+// @ts-ignore - The Mediapipe types are partial or missing exports in the way bundlers expect
 import { FaceMesh, Results } from '@mediapipe/face_mesh';
+// @ts-ignore
 import * as Cam from '@mediapipe/camera_utils';
 
 export interface GazePoint {
@@ -31,50 +33,56 @@ export const useEyeTracker = () => {
   useEffect(() => {
     if (!videoRef.current) return;
 
-    // Load FaceMesh
-    const faceMesh = new FaceMesh({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-      },
-    });
-
-    faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
-
-    faceMesh.onResults(onResults);
-
-    // Initialize Camera
+    let faceMesh: FaceMesh | null = null;
     let camera: Cam.Camera | null = null;
 
-    try {
-      // The @mediapipe/camera_utils package exports Camera as a property of the default export or named export depending on build system
-      // We try to instantiate it safely
-      const CameraUtils = Cam; 
-      
-      if (videoRef.current) {
-        camera = new CameraUtils.Camera(videoRef.current, {
-          onFrame: async () => {
-            if (videoRef.current && faceMesh) {
-              await faceMesh.send({ image: videoRef.current });
-            }
+    const init = async () => {
+      try {
+        // Dynamic import to bypass SSR/Build time static analysis issues with this specific library
+        const FaceMeshModule = await import('@mediapipe/face_mesh');
+        const FaceMeshClass = FaceMeshModule.FaceMesh;
+
+        faceMesh = new FaceMeshClass({
+          locateFile: (file: string) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
           },
-          width: 1280,
-          height: 720,
         });
-        camera.start();
+
+        faceMesh.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        faceMesh.onResults(onResults);
+
+        // Initialize Camera
+        const CameraUtils = Cam; 
+        
+        if (videoRef.current) {
+          camera = new CameraUtils.Camera(videoRef.current, {
+            onFrame: async () => {
+              if (videoRef.current && faceMesh) {
+                await faceMesh.send({ image: videoRef.current });
+              }
+            },
+            width: 1280,
+            height: 720,
+          });
+          await camera.start();
+        }
+      } catch (err: any) {
+        console.error('Initialization failed', err);
+        setError('Failed to initialize tracking: ' + err.message);
       }
-    } catch (err: any) {
-      console.error('Camera initialization failed', err);
-      setError('Failed to start camera: ' + err.message);
-    }
+    };
+
+    init();
 
     return () => {
-      camera?.stop();
-      faceMesh.close();
+      if (camera) camera.stop();
+      if (faceMesh) faceMesh.close();
     };
   }, []);
 
