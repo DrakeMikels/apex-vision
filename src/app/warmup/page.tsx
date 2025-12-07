@@ -27,7 +27,7 @@ const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
 function WarmupContent() {
   const router = useRouter();
   const { videoRef, trackingResult, error } = useEyeTracker();
-  const { phase, timeLeft, targetPosition, startSession, nextPhase, processFrame, scores } = useWarmupSession();
+  const { phase, timeLeft, targetPosition, distractorPosition, startSession, nextPhase, processFrame, scores } = useWarmupSession();
 
   useEffect(() => {
     if (trackingResult.faceDetected) {
@@ -56,11 +56,24 @@ function WarmupContent() {
 
       {/* Target Component */}
       {(phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) && (
-        <Target 
-          x={targetPosition?.x || 0.5} 
-          y={targetPosition?.y || 0.5} 
-          isStability={phase === WarmupPhase.STABILITY}
-        />
+        <>
+          <Target 
+            x={targetPosition?.x || 0.5} 
+            y={targetPosition?.y || 0.5} 
+            isStability={phase === WarmupPhase.STABILITY}
+          />
+          {/* Distractor for Stability Phase */}
+          {distractorPosition && (
+             <div 
+                className="absolute w-10 h-10 rounded-full bg-[#7928ca] blur-sm animate-pulse z-20 pointer-events-none opacity-60"
+                style={{
+                    left: `${distractorPosition.x * 100}%`,
+                    top: `${distractorPosition.y * 100}%`,
+                    transform: 'translate(-50%, -50%)',
+                }}
+             />
+          )}
+        </>
       )}
 
       {/* UI Overlay */}

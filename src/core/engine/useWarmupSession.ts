@@ -47,6 +47,8 @@ export const useWarmupSession = () => {
   const requestRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
 
+  const [distractorPosition, setDistractorPosition] = useState<Point | null>(null);
+
   const startSession = useCallback(() => {
     setPhase(WarmupPhase.CALIBRATION);
   }, []);
@@ -59,7 +61,9 @@ export const useWarmupSession = () => {
       // 0 error = 100, 0.3 error = 0
       const avgError = sum / arr.length;
       // Adjusted scoring heuristic: error of 0.4 (approx screen width/2) should be 0 score
-      const score = Math.max(0, Math.min(100, 100 - (avgError * 250))); 
+      // Reduced sensitivity further to prevent 0 scores. 0.5 error (half screen) -> 50 score
+      const score = Math.max(0, Math.min(100, 100 - (avgError * 150))); 
+      console.log('Calculating score:', arr.length, 'samples, avg error:', avgError, 'final:', score);
       return Math.round(score);
     };
 
@@ -176,6 +180,29 @@ export const useWarmupSession = () => {
       }
     } else if (phase === WarmupPhase.STABILITY) {
       setTargetPosition({ x: 0.5, y: 0.5 });
+      
+      // Distractors logic
+      const distractorInterval = 2.5; // Every 2.5 seconds
+      const cycle = Math.floor(t / distractorInterval);
+      const subTime = t % distractorInterval;
+      
+      // Flash for first 0.3s of interval
+      if (subTime < 0.3) {
+          // Deterministic pseudo-random position based on cycle index
+          const pseudoRandom = (seed: number) => Math.sin(seed * 999) - Math.floor(Math.sin(seed * 999));
+          const q = Math.floor(pseudoRandom(cycle) * 4); // 0,1,2,3 quadrants
+          
+          let dx = 0.25;
+          let dy = 0.25;
+          
+          if (q === 1) { dx = 0.75; dy = 0.25; }
+          else if (q === 2) { dx = 0.25; dy = 0.75; }
+          else if (q === 3) { dx = 0.75; dy = 0.75; }
+          
+          setDistractorPosition({ x: dx, y: dy });
+      } else {
+          setDistractorPosition(null);
+      }
     } else if (phase.startsWith('peripheral')) {
         // Peripheral: 3 Stages
         let interval = 2.0; // Stage 1
@@ -296,6 +323,7 @@ export const useWarmupSession = () => {
     timeLeft,
     scores,
     targetPosition,
+    distractorPosition,
     startSession,
     processFrame,
     nextPhase,
