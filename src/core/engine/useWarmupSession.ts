@@ -309,7 +309,7 @@ export const useWarmupSession = () => {
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) {
+    if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION_SETUP) {
       startTimeRef.current = performance.now();
       requestRef.current = requestAnimationFrame(animate);
       return () => cancelAnimationFrame(requestRef.current);
@@ -317,7 +317,7 @@ export const useWarmupSession = () => {
   }, [phase, animate]);
 
   useEffect(() => {
-    if (timeLeft > 0 && phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) {
+    if (timeLeft > 0 && phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION_SETUP) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
