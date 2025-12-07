@@ -43,8 +43,8 @@ export default function WarmupPage() {
         <div
           className="absolute w-6 h-6 bg-red-500 rounded-full shadow-[0_0_10px_#ff0000]"
           style={{
-            left: `${targetPosition.x * 100}%`,
-            top: `${targetPosition.y * 100}%`,
+            left: `${(targetPosition?.x || 0.5) * 100}%`,
+            top: `${(targetPosition?.y || 0.5) * 100}%`,
             transform: 'translate(-50%, -50%)',
             transition: phase === WarmupPhase.SACCADE ? 'none' : 'left 0.1s linear, top 0.1s linear',
           }}
@@ -103,4 +103,3 @@ export default function WarmupPage() {
     </div>
   );
 }
-
