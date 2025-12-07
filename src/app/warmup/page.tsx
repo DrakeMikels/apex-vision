@@ -8,6 +8,17 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
+  [WarmupPhase.IDLE]: 'Get Ready',
+  [WarmupPhase.CALIBRATION]: 'Align your face with the camera',
+  [WarmupPhase.SACCADE]: 'Snap your eyes quickly to the red dot',
+  [WarmupPhase.SMOOTH_PURSUIT]: 'Follow the dot smoothly with your eyes',
+  [WarmupPhase.PERIPHERAL]: 'Keep looking center, notice the flashes',
+  [WarmupPhase.REACTION]: 'React quickly! Look at the new target instantly',
+  [WarmupPhase.STABILITY]: 'Stare at the center dot. Do not move your eyes.',
+  [WarmupPhase.COMPLETED]: 'Session Complete',
+};
+
 export default function WarmupPage() {
   const router = useRouter();
   const { videoRef, trackingResult, error } = useEyeTracker();
@@ -41,20 +52,28 @@ export default function WarmupPage() {
       {/* Target */}
       {(phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) && (
         <div
-          className="absolute w-6 h-6 bg-red-500 rounded-full shadow-[0_0_10px_#ff0000]"
+          className={`absolute w-6 h-6 bg-red-500 rounded-full shadow-[0_0_10px_#ff0000] ${phase === WarmupPhase.STABILITY ? 'animate-pulse' : ''}`}
           style={{
             left: `${(targetPosition?.x || 0.5) * 100}%`,
             top: `${(targetPosition?.y || 0.5) * 100}%`,
             transform: 'translate(-50%, -50%)',
-            transition: phase === WarmupPhase.SACCADE ? 'none' : 'left 0.1s linear, top 0.1s linear',
+            transition: (phase === WarmupPhase.SACCADE || phase === WarmupPhase.REACTION) ? 'none' : 'left 0.1s linear, top 0.1s linear',
           }}
         />
       )}
 
       {/* UI Overlay */}
-      <div className="absolute top-8 left-0 right-0 text-center z-20 pointer-events-none">
-        <h2 className="text-2xl font-bold text-white uppercase tracking-wider">{phase.replace('_', ' ')}</h2>
-        {timeLeft > 0 && <p className="text-xl text-green-400 mt-2">{timeLeft}s</p>}
+      <div className="absolute top-8 left-0 right-0 text-center z-20 pointer-events-none px-4">
+        <h2 className="text-3xl font-bold text-white uppercase tracking-wider drop-shadow-md">
+          {phase.replace('_', ' ')}
+        </h2>
+        <p className="text-zinc-300 text-lg mt-1 drop-shadow-sm">{PHASE_INSTRUCTIONS[phase]}</p>
+        {timeLeft > 0 && (
+          <div className="mt-4 inline-block">
+             <span className="text-4xl font-mono font-bold text-green-400 tabular-nums drop-shadow-lg">{timeLeft}</span>
+             <span className="text-sm text-green-600 ml-1">s</span>
+          </div>
+        )}
       </div>
 
       {/* Start / Calibration Screen */}
