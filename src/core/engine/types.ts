@@ -12,6 +12,7 @@ export enum WarmupPhase {
   REACTION_1 = 'reaction_1',
   REACTION_2 = 'reaction_2',
   REACTION_3 = 'reaction_3',
+  GRID_SHOT = 'grid_shot', // Gamified target acquisition
   STABILITY = 'stability',
   COMPLETED = 'completed',
 }
