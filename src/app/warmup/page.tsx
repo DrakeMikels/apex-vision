@@ -23,6 +23,7 @@ const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.REACTION_1]: 'React quickly! Look at the new target instantly (Speed 1)',
   [WarmupPhase.REACTION_2]: 'Faster! (Speed 2)',
   [WarmupPhase.REACTION_3]: 'Maximum Speed! (Speed 3)',
+  [WarmupPhase.GRID_SHOT]: 'Rapid Fire! Lock onto targets as fast as possible.',
   [WarmupPhase.STABILITY]: 'Fixate on the center dot. Do not move your eyes.',
   [WarmupPhase.COMPLETED]: 'Session Complete',
 };
@@ -30,7 +31,7 @@ const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
 function WarmupContent() {
   const router = useRouter();
   const { videoRef, trackingResult, error } = useEyeTracker();
-  const { phase, timeLeft, targetPosition, distractorPosition, startSession, nextPhase, processFrame, scores } = useWarmupSession();
+  const { phase, timeLeft, targetPosition, distractorPosition, gridShotFeedback, startSession, nextPhase, processFrame, scores } = useWarmupSession();
 
   useEffect(() => {
     if (trackingResult.faceDetected) {
@@ -73,6 +74,20 @@ function WarmupContent() {
                     left: `${distractorPosition.x * 100}%`,
                     top: `${distractorPosition.y * 100}%`,
                     transform: 'translate(-50%, -50%)',
+                }}
+             />
+          )}
+
+          {/* Grid Shot Feedback Indicator */}
+          {gridShotFeedback && (
+             <div
+                key={gridShotFeedback.id}
+                className={`absolute pointer-events-none z-30 animate-[ping_0.5s_ease-out] w-20 h-20 rounded-full border-4 opacity-0`}
+                style={{
+                    left: `${targetPosition.x * 100}%`,
+                    top: `${targetPosition.y * 100}%`,
+                    transform: 'translate(-50%, -50%)',
+                    borderColor: gridShotFeedback.color === 'green' ? '#4ade80' : gridShotFeedback.color === 'yellow' ? '#facc15' : '#ef4444'
                 }}
              />
           )}

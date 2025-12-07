@@ -54,6 +54,18 @@ export const useWarmupSession = () => {
 
   const [distractorPosition, setDistractorPosition] = useState<Point | null>(null);
 
+  const gridShotRef = useRef<{
+    lastSpawnTime: number;
+    dwellStartTime: number | null;
+    isLocked: boolean;
+  }>({
+    lastSpawnTime: 0,
+    dwellStartTime: null,
+    isLocked: false,
+  });
+  
+  const [gridShotFeedback, setGridShotFeedback] = useState<{ color: 'green' | 'yellow' | 'red'; id: number } | null>(null);
+
   const startSession = useCallback(() => {
     setPhase(WarmupPhase.CALIBRATION_SETUP);
   }, []);
@@ -201,6 +213,13 @@ export const useWarmupSession = () => {
         setTimeLeft(PHASE_DURATION_10S);
         break;
       case WarmupPhase.REACTION_3:
+        setPhase(WarmupPhase.GRID_SHOT);
+        setTimeLeft(30); // 30 seconds for Grid Shot
+        gridShotRef.current = { lastSpawnTime: performance.now(), dwellStartTime: null, isLocked: false };
+        // Initial Target
+        setTargetPosition({ x: 0.5, y: 0.5 });
+        break;
+      case WarmupPhase.GRID_SHOT:
         setPhase(WarmupPhase.STABILITY);
         setTimeLeft(PHASE_DURATION_30S);
         break;
@@ -283,6 +302,7 @@ export const useWarmupSession = () => {
         // Deterministic corner sequence based on time step
         setTargetPosition(corners[step % 4]);
     } else if (phase.startsWith('reaction')) {
+        // ... (existing reaction logic) ...
         // Reaction: Explicit stages
         let interval = 1.0; // Stage 1
         
@@ -303,6 +323,9 @@ export const useWarmupSession = () => {
         const ry = 0.1 + (pseudoRandom(step + 100) * 0.8);
         
         setTargetPosition({ x: rx, y: ry });
+    } else if (phase === WarmupPhase.GRID_SHOT) {
+        // Static target, moves only on hit (handled in processFrame)
+        // No animation loop logic needed for position, but we need to ensure loop runs for consistency
     }
 
     requestRef.current = requestAnimationFrame(animate);
@@ -374,6 +397,48 @@ export const useWarmupSession = () => {
         });
      }
 
+     if (phase === WarmupPhase.GRID_SHOT) {
+        // Distance Threshold for "Locking On"
+        // Target size is roughly 10% (0.1). So 0.15 distance is generous.
+        if (distance < 0.15) {
+            if (!gridShotRef.current.dwellStartTime) {
+                gridShotRef.current.dwellStartTime = performance.now();
+            } else {
+                const dwellDuration = performance.now() - gridShotRef.current.dwellStartTime;
+                if (dwellDuration > 100 && !gridShotRef.current.isLocked) { // 100ms dwell to confirm
+                    // TARGET HIT!
+                    gridShotRef.current.isLocked = true;
+                    
+                    const reactionTime = performance.now() - gridShotRef.current.lastSpawnTime;
+                    let feedbackColor: 'green' | 'yellow' | 'red' = 'red';
+                    if (reactionTime < 500) feedbackColor = 'green';
+                    else if (reactionTime < 900) feedbackColor = 'yellow';
+                    
+                    setGridShotFeedback({ color: feedbackColor, id: Date.now() });
+                    
+                    // Move to new random position immediately
+                    const nextX = 0.1 + Math.random() * 0.8;
+                    const nextY = 0.1 + Math.random() * 0.8;
+                    setTargetPosition({ x: nextX, y: nextY });
+                    
+                    // Reset for next target
+                    gridShotRef.current.lastSpawnTime = performance.now();
+                    gridShotRef.current.dwellStartTime = null;
+                    gridShotRef.current.isLocked = false;
+                    
+                    // Add score bonus?
+                    // We can reuse 'reaction' score accumulator for now, pushing a "perfect" score (0 distance)
+                    // or negative distance? No, let's just push 0 distance to boost average.
+                    scoreAccumulatorRef.current.reaction.push(0); 
+                }
+            }
+        } else {
+            // Lost lock
+            gridShotRef.current.dwellStartTime = null;
+        }
+        return; // Don't process standard distance scoring
+     }
+
      // Store data for scoring
      if (phase === WarmupPhase.SACCADE) {
        scoreAccumulatorRef.current.saccade.push(distance);
@@ -394,6 +459,7 @@ export const useWarmupSession = () => {
     scores,
     targetPosition,
     distractorPosition,
+    gridShotFeedback,
     startSession,
     processFrame,
     nextPhase,
