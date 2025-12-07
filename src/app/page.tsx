@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6 text-center relative overflow-hidden">
-      {/* 3D Grid Background */}
-      <div className="absolute inset-0 pointer-events-none opacity-20">
-        <div className="absolute inset-0 grid-bg w-[200%] h-[200%] -left-[50%] -top-[50%]"></div>
+      {/* 3D Grid Background - Simplified Structure */}
+      <div className="absolute inset-0 pointer-events-none opacity-20 z-0">
+        <div className="grid-bg w-full h-full absolute inset-0"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
       </div>
 
       {/* Background Glow */}
-      <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#ff0080] opacity-20 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#ff0080] opacity-20 blur-[120px] rounded-full pointer-events-none z-0"></div>
 
       <div className="max-w-md space-y-10 relative z-10">
         <div className="space-y-4">
