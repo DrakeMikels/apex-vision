@@ -269,7 +269,7 @@ export const useWarmupSession = () => {
      const distance = Math.sqrt(dx*dx + dy*dy);
 
      // Record gaze point
-     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.CALIBRATION && phase !== WarmupPhase.COMPLETED) {
+     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED) {
         gazeHistoryRef.current.push({
             x: finalX,
             y: finalY,
