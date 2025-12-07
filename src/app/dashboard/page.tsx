@@ -181,7 +181,7 @@ function DashboardContent() {
         </div>
 
         {/* Score History Graph */}
-        {history.length > 1 && (
+        {history.length > 0 && (
             <div className="space-y-4">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <span className="w-1 h-5 bg-[#ff0080] rounded-full"></span>
