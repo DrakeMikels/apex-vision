@@ -67,7 +67,7 @@ export const useWarmupSession = () => {
       const avgError = sum / arr.length;
       // Adjusted scoring heuristic: error of 0.4 (approx screen width/2) should be 0 score
       // Reduced sensitivity further to prevent 0 scores. 0.5 error (half screen) -> 50 score
-      const score = Math.max(0, Math.min(100, 100 - (avgError * 150))); 
+      const score = Math.max(0, Math.min(100, 100 - (avgError * 80))); 
       console.log('Calculating score:', arr.length, 'samples, avg error:', avgError, 'final:', score);
       return Math.round(score);
     };
@@ -162,7 +162,7 @@ export const useWarmupSession = () => {
                 if (gazeDeltaX > 0.05) {
                     const scaleX = 0.8 / gazeDeltaX;
                     // Apply scale (using same for Y for now, maybe 1.5x)
-                    calibrationRef.current.scale = { x: scaleX, y: scaleX * 1.2 }; 
+                    calibrationRef.current.scale = { x: scaleX, y: scaleX * 1.0 }; 
                     console.log('Calibration Success:', calibrationRef.current);
                 } else {
                     console.warn('Calibration delta too small, using default scale');
