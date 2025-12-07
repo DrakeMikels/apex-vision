@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { WarmupPhase, WarmupScore } from './types';
 import { EyeTrackingResult } from '../tracking/useEyeTracker';
 
-const PHASE_DURATION_5S = 5; // Short phases
-const PHASE_DURATION_30S = 30; // Long phases
+const PHASE_DURATION_10S = 10; // 10 seconds for short phases
+const PHASE_DURATION_30S = 30; // 30 seconds for long phases
 
 interface Point {
   x: number;
@@ -88,15 +88,15 @@ export const useWarmupSession = () => {
         break;
       case WarmupPhase.PERIPHERAL:
         setPhase(WarmupPhase.REACTION_1);
-        setTimeLeft(PHASE_DURATION_5S);
+        setTimeLeft(PHASE_DURATION_10S);
         break;
       case WarmupPhase.REACTION_1:
         setPhase(WarmupPhase.REACTION_2);
-        setTimeLeft(PHASE_DURATION_5S);
+        setTimeLeft(PHASE_DURATION_10S);
         break;
       case WarmupPhase.REACTION_2:
         setPhase(WarmupPhase.REACTION_3);
-        setTimeLeft(PHASE_DURATION_5S);
+        setTimeLeft(PHASE_DURATION_10S);
         break;
       case WarmupPhase.REACTION_3:
         setPhase(WarmupPhase.STABILITY);
