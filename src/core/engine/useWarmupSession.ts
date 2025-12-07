@@ -107,9 +107,15 @@ export const useWarmupSession = () => {
         const corners = [{x:0.1,y:0.1}, {x:0.9,y:0.1}, {x:0.1,y:0.9}, {x:0.9,y:0.9}];
         setTargetPosition(corners[step % 4]);
     } else if (phase === WarmupPhase.REACTION) {
-        // Reaction: Randomly appear in different spots quickly
-        // Change position every 0.8 seconds
-        const interval = 0.8; 
+        // Reaction: 3 Stages of acceleration
+        let interval = 1.0; // Stage 1: Base speed
+        
+        if (t > 10) {
+            interval = 0.64; // Stage 3: +20% +20% faster (approx 0.64s)
+        } else if (t > 5) {
+            interval = 0.8; // Stage 2: +20% faster
+        }
+
         const step = Math.floor(t / interval);
         
         // Deterministic pseudo-random positions based on time step to avoid flickering in React
