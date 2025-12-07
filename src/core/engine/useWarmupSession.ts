@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { WarmupPhase, WarmupScore } from './types';
 import { EyeTrackingResult } from '../tracking/useEyeTracker';
 
-const PHASE_DURATION = 15; // Reduced to 15s for quicker testing/MVP
+const PHASE_DURATION_5S = 5; // Short phases
+const PHASE_DURATION_30S = 30; // Long phases
 
 interface Point {
   x: number;
@@ -12,6 +13,21 @@ interface Point {
 export const useWarmupSession = () => {
   const [phase, setPhase] = useState<WarmupPhase>(WarmupPhase.IDLE);
   const [timeLeft, setTimeLeft] = useState(0);
+  // Use a ref to accumulate real score data
+  const scoreAccumulatorRef = useRef<{
+    saccade: number[];
+    smoothPursuit: number[];
+    peripheral: number[];
+    reaction: number[];
+    stability: number[];
+  }>({
+    saccade: [],
+    smoothPursuit: [],
+    peripheral: [],
+    reaction: [],
+    stability: [],
+  });
+
   const [scores, setScores] = useState<WarmupScore>({
     saccade: 0,
     smoothPursuit: 0,
@@ -24,23 +40,35 @@ export const useWarmupSession = () => {
   const [targetPosition, setTargetPosition] = useState<Point>({ x: 0.5, y: 0.5 });
   const requestRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
-  // Add a ref to track reaction test state
-  const reactionStateRef = useRef<{ lastSwitch: number, visible: boolean }>({ lastSwitch: 0, visible: true });
 
   const startSession = useCallback(() => {
     setPhase(WarmupPhase.CALIBRATION);
   }, []);
 
   const calculateFinalScores = () => {
-    // In a real app, we would aggregate the 'hits' and 'misses' recorded during processFrame
-    // For MVP demo, we generate realistic random scores
+    const calcAverage = (arr: number[]) => {
+      if (arr.length === 0) return 0;
+      const sum = arr.reduce((a, b) => a + b, 0);
+      // Map raw distance error (0 to ~0.5) to a score (0-100)
+      // 0 error = 100, 0.3 error = 0
+      const avgError = sum / arr.length;
+      const score = Math.max(0, Math.min(100, 100 - (avgError * 300))); // Heuristic scaling
+      return Math.round(score);
+    };
+
+    const saccadeScore = calcAverage(scoreAccumulatorRef.current.saccade);
+    const smoothScore = calcAverage(scoreAccumulatorRef.current.smoothPursuit);
+    const peripheralScore = calcAverage(scoreAccumulatorRef.current.peripheral);
+    const reactionScore = calcAverage(scoreAccumulatorRef.current.reaction);
+    const stabilityScore = calcAverage(scoreAccumulatorRef.current.stability);
+
     setScores({
-      saccade: Math.floor(Math.random() * 20) + 80,
-      smoothPursuit: Math.floor(Math.random() * 20) + 80,
-      peripheral: Math.floor(Math.random() * 20) + 80,
-      reaction: Math.floor(Math.random() * 20) + 80,
-      stability: Math.floor(Math.random() * 20) + 80,
-      overall: Math.floor(Math.random() * 15) + 85,
+      saccade: saccadeScore,
+      smoothPursuit: smoothScore,
+      peripheral: peripheralScore,
+      reaction: reactionScore,
+      stability: stabilityScore,
+      overall: Math.round((saccadeScore + smoothScore + peripheralScore + reactionScore + stabilityScore) / 5),
     });
   };
 
@@ -48,23 +76,31 @@ export const useWarmupSession = () => {
     switch (phase) {
       case WarmupPhase.CALIBRATION:
         setPhase(WarmupPhase.SACCADE);
-        setTimeLeft(PHASE_DURATION);
+        setTimeLeft(PHASE_DURATION_30S);
         break;
       case WarmupPhase.SACCADE:
         setPhase(WarmupPhase.SMOOTH_PURSUIT);
-        setTimeLeft(PHASE_DURATION);
+        setTimeLeft(PHASE_DURATION_30S);
         break;
       case WarmupPhase.SMOOTH_PURSUIT:
         setPhase(WarmupPhase.PERIPHERAL);
-        setTimeLeft(PHASE_DURATION);
+        setTimeLeft(PHASE_DURATION_30S);
         break;
       case WarmupPhase.PERIPHERAL:
-        setPhase(WarmupPhase.REACTION);
-        setTimeLeft(PHASE_DURATION);
+        setPhase(WarmupPhase.REACTION_1);
+        setTimeLeft(PHASE_DURATION_5S);
         break;
-      case WarmupPhase.REACTION:
+      case WarmupPhase.REACTION_1:
+        setPhase(WarmupPhase.REACTION_2);
+        setTimeLeft(PHASE_DURATION_5S);
+        break;
+      case WarmupPhase.REACTION_2:
+        setPhase(WarmupPhase.REACTION_3);
+        setTimeLeft(PHASE_DURATION_5S);
+        break;
+      case WarmupPhase.REACTION_3:
         setPhase(WarmupPhase.STABILITY);
-        setTimeLeft(PHASE_DURATION);
+        setTimeLeft(PHASE_DURATION_30S);
         break;
       case WarmupPhase.STABILITY:
         setPhase(WarmupPhase.COMPLETED);
@@ -79,17 +115,12 @@ export const useWarmupSession = () => {
   const animate = useCallback((time: number) => {
     if (phase === WarmupPhase.IDLE || phase === WarmupPhase.COMPLETED || phase === WarmupPhase.CALIBRATION) return;
 
-    // Reset start time if it hasn't been set for the current phase
-    // This logic was a bit flawed in the previous version if phases switched quickly
-    // But relying on the relative time 't' based on startTimeRef is safer if we reset startTimeRef on phase change.
-    
     // Calculate elapsed time since this phase started
     const t = (time - startTimeRef.current) / 1000; // seconds
 
     if (phase === WarmupPhase.SMOOTH_PURSUIT) {
       // Circle path
-      // Use a simpler bounded path to ensure it never goes off screen
-      const radius = 0.35; // 35% of screen width/height radius
+      const radius = 0.35;
       const speed = 1.5;
       const centerX = 0.5;
       const centerY = 0.5;
@@ -99,35 +130,30 @@ export const useWarmupSession = () => {
         y: centerY + radius * Math.sin(t * speed),
       });
     } else if (phase === WarmupPhase.SACCADE) {
-      // Jump every 1 second
       if (Math.floor(t) % 2 === 0) {
         setTargetPosition({ x: 0.2, y: 0.5 });
       } else {
         setTargetPosition({ x: 0.8, y: 0.5 });
       }
     } else if (phase === WarmupPhase.STABILITY) {
-      // Stability should be fixed at center, but maybe add micro-jitter to simulate holding an angle?
-      // For now, keep it centered as per "fixate on tiny dot"
       setTargetPosition({ x: 0.5, y: 0.5 });
     } else if (phase === WarmupPhase.PERIPHERAL) {
-        // Flash random corners
         const interval = 2; // seconds
         const step = Math.floor(t / interval);
         const corners = [{x:0.1,y:0.1}, {x:0.9,y:0.1}, {x:0.1,y:0.9}, {x:0.9,y:0.9}];
         setTargetPosition(corners[step % 4]);
-    } else if (phase === WarmupPhase.REACTION) {
-        // Reaction: 3 Stages of acceleration
-        let interval = 1.0; // Stage 1: Base speed
+    } else if (phase === WarmupPhase.REACTION_1 || phase === WarmupPhase.REACTION_2 || phase === WarmupPhase.REACTION_3) {
+        // Reaction: Explicit stages
+        let interval = 1.0; // Stage 1
         
-        if (t > 10) {
-            interval = 0.64; // Stage 3: +20% +20% faster (approx 0.64s)
-        } else if (t > 5) {
+        if (phase === WarmupPhase.REACTION_2) {
             interval = 0.8; // Stage 2: +20% faster
+        } else if (phase === WarmupPhase.REACTION_3) {
+            interval = 0.64; // Stage 3: +20% +20% faster
         }
 
         const step = Math.floor(t / interval);
         
-        // Deterministic pseudo-random positions based on time step to avoid flickering in React
         const pseudoRandom = (seed: number) => {
             const x = Math.sin(seed) * 10000;
             return x - Math.floor(x);
@@ -144,7 +170,6 @@ export const useWarmupSession = () => {
 
   useEffect(() => {
     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) {
-      // Reset the start time whenever phase changes to ensure animations start from t=0
       startTimeRef.current = performance.now();
       requestRef.current = requestAnimationFrame(animate);
       return () => cancelAnimationFrame(requestRef.current);
@@ -167,9 +192,26 @@ export const useWarmupSession = () => {
   }, [timeLeft, phase, nextPhase]);
 
   const processFrame = useCallback((tracking: EyeTrackingResult) => {
-     // TODO: Calculate distance between tracking.gaze and targetPosition
-     // Accumulate error/score
-  }, []);
+     if (!tracking.faceDetected) return;
+
+     // Simple Euclidean distance
+     const dx = tracking.gaze.x - targetPosition.x;
+     const dy = tracking.gaze.y - targetPosition.y;
+     const distance = Math.sqrt(dx*dx + dy*dy);
+
+     // Store data for scoring
+     if (phase === WarmupPhase.SACCADE) {
+       scoreAccumulatorRef.current.saccade.push(distance);
+     } else if (phase === WarmupPhase.SMOOTH_PURSUIT) {
+       scoreAccumulatorRef.current.smoothPursuit.push(distance);
+     } else if (phase === WarmupPhase.PERIPHERAL) {
+       scoreAccumulatorRef.current.peripheral.push(distance);
+     } else if (phase === WarmupPhase.REACTION_1 || phase === WarmupPhase.REACTION_2 || phase === WarmupPhase.REACTION_3) {
+       scoreAccumulatorRef.current.reaction.push(distance);
+     } else if (phase === WarmupPhase.STABILITY) {
+       scoreAccumulatorRef.current.stability.push(distance);
+     }
+  }, [phase, targetPosition]);
 
   return {
     phase,

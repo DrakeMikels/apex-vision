@@ -4,7 +4,9 @@ export enum WarmupPhase {
   SACCADE = 'saccade',
   SMOOTH_PURSUIT = 'smooth_pursuit',
   PERIPHERAL = 'peripheral',
-  REACTION = 'reaction',
+  REACTION_1 = 'reaction_1',
+  REACTION_2 = 'reaction_2',
+  REACTION_3 = 'reaction_3',
   STABILITY = 'stability',
   COMPLETED = 'completed',
 }
@@ -23,4 +25,3 @@ export interface TestConfig {
   targetSize: number; // pixels or percent
   speed: number; // for moving targets
 }
-

@@ -14,7 +14,9 @@ const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.SACCADE]: 'Snap your eyes quickly to the red dot',
   [WarmupPhase.SMOOTH_PURSUIT]: 'Follow the dot smoothly with your eyes',
   [WarmupPhase.PERIPHERAL]: 'Keep looking center, notice the flashes',
-  [WarmupPhase.REACTION]: 'React quickly! Look at the new target instantly',
+  [WarmupPhase.REACTION_1]: 'React quickly! Look at the new target instantly (Speed 1)',
+  [WarmupPhase.REACTION_2]: 'Faster! (Speed 2)',
+  [WarmupPhase.REACTION_3]: 'Maximum Speed! (Speed 3)',
   [WarmupPhase.STABILITY]: 'Stare at the center dot. Do not move your eyes.',
   [WarmupPhase.COMPLETED]: 'Session Complete',
 };
@@ -57,7 +59,7 @@ export default function WarmupPage() {
             left: `${(targetPosition?.x || 0.5) * 100}%`,
             top: `${(targetPosition?.y || 0.5) * 100}%`,
             transform: 'translate(-50%, -50%)',
-            transition: (phase === WarmupPhase.SACCADE || phase === WarmupPhase.REACTION) ? 'none' : 'left 0.1s linear, top 0.1s linear',
+            transition: (phase === WarmupPhase.SACCADE || phase.startsWith('reaction')) ? 'none' : 'left 0.1s linear, top 0.1s linear',
           }}
         />
       )}
@@ -65,7 +67,7 @@ export default function WarmupPage() {
       {/* UI Overlay */}
       <div className="absolute top-8 left-0 right-0 text-center z-20 pointer-events-none px-4">
         <h2 className="text-3xl font-bold text-white uppercase tracking-wider drop-shadow-md">
-          {phase.replace('_', ' ')}
+          {phase.replace(/_/g, ' ')}
         </h2>
         <p className="text-zinc-300 text-lg mt-1 drop-shadow-sm">{PHASE_INSTRUCTIONS[phase]}</p>
         {timeLeft > 0 && (
