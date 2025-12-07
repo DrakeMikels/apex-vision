@@ -223,6 +223,7 @@ export const useWarmupSession = () => {
       case WarmupPhase.GRID_SHOT:
         setPhase(WarmupPhase.STABILITY);
         setTimeLeft(15); // Reduced to 15 seconds
+        setGridShotFeedback(null); // Clear feedback
         break;
       case WarmupPhase.STABILITY:
         setPhase(WarmupPhase.COMPLETED);

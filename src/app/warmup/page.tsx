@@ -79,7 +79,7 @@ function WarmupContent() {
           )}
 
           {/* Grid Shot Feedback Indicator */}
-          {gridShotFeedback && (
+          {phase === WarmupPhase.GRID_SHOT && gridShotFeedback && (
             <>
                 {/* Ping Animation */}
                 <div
