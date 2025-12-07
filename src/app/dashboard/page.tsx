@@ -150,106 +150,125 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white p-4 pb-20">
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tighter text-glow">Readiness Report</h1>
           <p className="text-zinc-400">FPS Performance Assessment</p>
         </div>
 
-        {/* Overall Score */}
-        <Card className="bg-[#0a0a0a] border-zinc-800 box-glow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-zinc-400 text-sm uppercase tracking-widest">Overall Readiness</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-6xl font-bold text-[#ff0080] text-glow">{scores.overall}</span>
-              <span className="text-zinc-500 text-xl mb-2">/ 100</span>
-            </div>
-            <Progress value={scores.overall} className="mt-4 h-3 bg-zinc-900" indicatorClassName="bg-gradient-to-r from-[#ff0080] to-[#7928ca]" />
-          </CardContent>
-        </Card>
+        {/* Main Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            
+            {/* Left Column: Score Cards (1 Col) */}
+            <div className="space-y-4">
+                {/* Overall Score */}
+                <Card className="bg-[#0a0a0a] border-zinc-800 box-glow">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-zinc-400 text-sm uppercase tracking-widest">Overall Readiness</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-end gap-2">
+                        <span className="text-6xl font-bold text-[#ff0080] text-glow">{scores.overall}</span>
+                        <span className="text-zinc-500 text-xl mb-2">/ 100</span>
+                        </div>
+                        <Progress value={scores.overall} className="mt-4 h-3 bg-zinc-900" indicatorClassName="bg-gradient-to-r from-[#ff0080] to-[#7928ca]" />
+                    </CardContent>
+                </Card>
 
-        {/* Heatmap */}
-        {gazeHistory.length > 0 && (
-            <div className="space-y-2">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <span className="w-1 h-5 bg-[#7928ca] rounded-full"></span>
-                    Gaze Distribution
-                </h3>
-                <Heatmap points={gazeHistory} />
-                <p className="text-xs text-zinc-500">
-                    Visualization of your eye movements during the session. Denser areas indicate longer fixation.
-                </p>
+                {/* Detailed Metrics */}
+                <div className="grid grid-cols-1 gap-4">
+                    <ScoreCard label="Saccade Speed" value={scores.saccade} />
+                    <ScoreCard label="Smooth Pursuit" value={scores.smoothPursuit} />
+                    <ScoreCard label="Peripheral" value={scores.peripheral} />
+                    <ScoreCard label="Reaction Time" value={scores.reaction} />
+                    <ScoreCard label="Stability" value={scores.stability} />
+                </div>
             </div>
-        )}
 
-        {/* Detailed Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <ScoreCard label="Saccade Speed" value={scores.saccade} />
-          <ScoreCard label="Smooth Pursuit" value={scores.smoothPursuit} />
-          <ScoreCard label="Peripheral" value={scores.peripheral} />
-          <ScoreCard label="Reaction Time" value={scores.reaction} />
-          <ScoreCard label="Stability" value={scores.stability} />
+            {/* Center Column: Heatmap (2 Cols) */}
+            <div className="md:col-span-2 space-y-4">
+                {gazeHistory.length > 0 ? (
+                    <div className="space-y-2 h-full flex flex-col">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <span className="w-1 h-5 bg-[#7928ca] rounded-full"></span>
+                            Gaze Distribution
+                        </h3>
+                        <div className="flex-1 min-h-[300px] md:min-h-0">
+                            <Heatmap points={gazeHistory} />
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                            Visualization of your eye movements during the session. Denser areas indicate longer fixation.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="h-full flex items-center justify-center border border-zinc-800 rounded-xl bg-[#0a0a0a] text-zinc-500">
+                        No Gaze Data Available
+                    </div>
+                )}
+            </div>
+
+            {/* Right Column: Chart (1 Col) */}
+            <div className="space-y-4">
+                {history.length > 0 && (
+                    <div className="space-y-2 h-full flex flex-col">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <span className="w-1 h-5 bg-[#ff0080] rounded-full"></span>
+                            Progress
+                        </h3>
+                        <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex-1 min-h-[200px]">
+                            <div className="h-full w-full min-h-[200px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={chartData}>
+                                        <defs>
+                                            <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ff0080" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#ff0080" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                        <XAxis dataKey="name" stroke="#666" fontSize={10} tickLine={false} interval="preserveStartEnd" />
+                                        <YAxis stroke="#666" fontSize={10} tickLine={false} domain={[0, 100]} width={30} />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#333', color: '#fff' }}
+                                            itemStyle={{ color: '#ff0080' }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="score" 
+                                            stroke="#ff0080" 
+                                            strokeWidth={4}
+                                            dot={{ fill: '#ff0080', strokeWidth: 0, r: 4 }}
+                                            activeDot={{ r: 8, fill: '#fff' }}
+                                            fill="url(#scoreGradient)"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card>
+                    </div>
+                )}
+            </div>
         </div>
 
-        {/* Score History Graph */}
-        {history.length > 0 && (
-            <div className="space-y-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <span className="w-1 h-5 bg-[#ff0080] rounded-full"></span>
-                    Progress Over Time
-                </h3>
-                <Card className="bg-[#0a0a0a] border-zinc-800 p-4">
-                    <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#ff0080" stopOpacity={0.8}/>
-                                        <stop offset="95%" stopColor="#ff0080" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} />
-                                <YAxis stroke="#666" fontSize={12} tickLine={false} domain={[0, 100]} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#333', color: '#fff' }}
-                                    itemStyle={{ color: '#ff0080' }}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="score" 
-                                    stroke="#ff0080" 
-                                    strokeWidth={4}
-                                    dot={{ fill: '#ff0080', strokeWidth: 0, r: 4 }}
-                                    activeDot={{ r: 8, fill: '#fff' }}
-                                    fill="url(#scoreGradient)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-            </div>
-        )}
-
-        {/* Recommendations */}
+        {/* Drills Section (Full Width) */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold border-l-4 border-[#ff0080] pl-3 text-white">Recommended Drills</h2>
-          {drills.map((drill) => (
-            <Card key={drill.id} className="bg-[#0a0a0a] border-zinc-800 overflow-hidden group hover:border-[#ff0080]/50 transition-colors">
-              <div className="bg-zinc-900 px-4 py-1 flex justify-between items-center border-b border-zinc-800">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{drill.game}</span>
-                <span className="text-xs text-[#ff0080] font-bold">{drill.focus}</span>
-              </div>
-              <CardContent className="pt-4 relative">
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#ff0080] to-[#7928ca] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <h3 className="font-bold text-lg mb-1 text-white group-hover:text-[#ff0080] transition-colors">{drill.name}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{drill.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {drills.map((drill) => (
+                <Card key={drill.id} className="bg-[#0a0a0a] border-zinc-800 overflow-hidden group hover:border-[#ff0080]/50 transition-colors">
+                <div className="bg-zinc-900 px-4 py-1 flex justify-between items-center border-b border-zinc-800">
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{drill.game}</span>
+                    <span className="text-xs text-[#ff0080] font-bold">{drill.focus}</span>
+                </div>
+                <CardContent className="pt-4 relative">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#ff0080] to-[#7928ca] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <h3 className="font-bold text-lg mb-1 text-white group-hover:text-[#ff0080] transition-colors">{drill.name}</h3>
+                    <p className="text-sm text-zinc-400 leading-relaxed">{drill.description}</p>
+                </CardContent>
+                </Card>
+            ))}
+          </div>
         </div>
 
         <Link href="/warmup" className="block">

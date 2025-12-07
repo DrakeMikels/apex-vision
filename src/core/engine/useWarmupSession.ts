@@ -13,6 +13,10 @@ interface Point {
 export const useWarmupSession = () => {
   const [phase, setPhase] = useState<WarmupPhase>(WarmupPhase.IDLE);
   const [timeLeft, setTimeLeft] = useState(0);
+  
+  // Calibration State
+  const calibrationSamplesRef = useRef<Point[]>([]);
+
   // Use a ref to accumulate real score data
   const scoreAccumulatorRef = useRef<{
     saccade: number[];
@@ -50,7 +54,7 @@ export const useWarmupSession = () => {
   const [distractorPosition, setDistractorPosition] = useState<Point | null>(null);
 
   const startSession = useCallback(() => {
-    setPhase(WarmupPhase.CALIBRATION);
+    setPhase(WarmupPhase.CALIBRATION_SETUP);
   }, []);
 
   const calculateFinalScores = () => {
@@ -109,7 +113,61 @@ export const useWarmupSession = () => {
 
   const nextPhase = useCallback(() => {
     switch (phase) {
-      case WarmupPhase.CALIBRATION:
+      case WarmupPhase.CALIBRATION_SETUP:
+        setPhase(WarmupPhase.CALIBRATION_CENTER);
+        calibrationSamplesRef.current = []; // Reset samples
+        setTimeLeft(3); // 3 seconds to look at center
+        break;
+      case WarmupPhase.CALIBRATION_CENTER:
+        // Compute center offset
+        if (calibrationSamplesRef.current.length > 0) {
+            const avgX = calibrationSamplesRef.current.reduce((sum, p) => sum + p.x, 0) / calibrationSamplesRef.current.length;
+            const avgY = calibrationSamplesRef.current.reduce((sum, p) => sum + p.y, 0) / calibrationSamplesRef.current.length;
+            calibrationRef.current.center = { x: avgX, y: avgY };
+        }
+        setPhase(WarmupPhase.CALIBRATION_LEFT);
+        calibrationSamplesRef.current = [];
+        setTimeLeft(3);
+        break;
+      case WarmupPhase.CALIBRATION_LEFT:
+        if (calibrationSamplesRef.current.length > 0) {
+            const avgX = calibrationSamplesRef.current.reduce((sum, p) => sum + p.x, 0) / calibrationSamplesRef.current.length;
+            const avgY = calibrationSamplesRef.current.reduce((sum, p) => sum + p.y, 0) / calibrationSamplesRef.current.length;
+            calibrationPointsRef.current.left = { x: avgX, y: avgY };
+        }
+        setPhase(WarmupPhase.CALIBRATION_RIGHT);
+        calibrationSamplesRef.current = [];
+        setTimeLeft(3);
+        break;
+      case WarmupPhase.CALIBRATION_RIGHT:
+        // Calculate Scale!
+        if (calibrationSamplesRef.current.length > 0) {
+            const avgX = calibrationSamplesRef.current.reduce((sum, p) => sum + p.x, 0) / calibrationSamplesRef.current.length;
+            const avgY = calibrationSamplesRef.current.reduce((sum, p) => sum + p.y, 0) / calibrationSamplesRef.current.length;
+            const rightPoint = { x: avgX, y: avgY };
+            
+            // We should have stored the left point from previous phase. 
+            // Since we cleared samples, we need a way to pass it.
+            // Using calibrationPointsRef for this.
+            calibrationPointsRef.current.right = rightPoint;
+            
+            if (calibrationPointsRef.current.left && calibrationPointsRef.current.right) {
+                // Calculate Scale
+                // Target Delta X = 0.8 (0.9 - 0.1)
+                // Gaze Delta X = Right.x - Left.x
+                const gazeDeltaX = Math.abs(calibrationPointsRef.current.right.x - calibrationPointsRef.current.left.x);
+                
+                // Avoid division by zero
+                if (gazeDeltaX > 0.05) {
+                    const scaleX = 0.8 / gazeDeltaX;
+                    // Apply scale (using same for Y for now, maybe 1.5x)
+                    calibrationRef.current.scale = { x: scaleX, y: scaleX * 1.2 }; 
+                    console.log('Calibration Success:', calibrationRef.current);
+                } else {
+                    console.warn('Calibration delta too small, using default scale');
+                }
+            }
+        }
         setPhase(WarmupPhase.SACCADE);
         setTimeLeft(PHASE_DURATION_30S);
         break;
@@ -156,12 +214,18 @@ export const useWarmupSession = () => {
 
   // Game Loop for Target Movement
   const animate = useCallback((time: number) => {
-    if (phase === WarmupPhase.IDLE || phase === WarmupPhase.COMPLETED || phase === WarmupPhase.CALIBRATION) return;
+    if (phase === WarmupPhase.IDLE || phase === WarmupPhase.COMPLETED || phase === WarmupPhase.CALIBRATION_SETUP) return;
 
     // Calculate elapsed time since this phase started
     const t = Math.max(0, (time - startTimeRef.current) / 1000); // seconds, prevent negative time
 
-    if (phase === WarmupPhase.SMOOTH_PURSUIT) {
+    if (phase === WarmupPhase.CALIBRATION_CENTER) {
+        setTargetPosition({ x: 0.5, y: 0.5 });
+    } else if (phase === WarmupPhase.CALIBRATION_LEFT) {
+        setTargetPosition({ x: 0.1, y: 0.5 });
+    } else if (phase === WarmupPhase.CALIBRATION_RIGHT) {
+        setTargetPosition({ x: 0.9, y: 0.5 });
+    } else if (phase === WarmupPhase.SMOOTH_PURSUIT) {
       // Circle path
       const radius = 0.35;
       const speed = 1.5;
@@ -273,11 +337,16 @@ export const useWarmupSession = () => {
      let gazeY = tracking.gaze.y;
 
      // Auto-calibration during the setup phase
-     if (phase === WarmupPhase.CALIBRATION) {
-        // Simple running average to find the "resting" center position
-        const alpha = 0.1;
-        calibrationRef.current.center.x = (calibrationRef.current.center.x * (1 - alpha)) + (gazeX * alpha);
-        calibrationRef.current.center.y = (calibrationRef.current.center.y * (1 - alpha)) + (gazeY * alpha);
+     if (phase === WarmupPhase.CALIBRATION_SETUP || phase === WarmupPhase.CALIBRATION_CENTER || phase === WarmupPhase.CALIBRATION_LEFT || phase === WarmupPhase.CALIBRATION_RIGHT) {
+        if (phase === WarmupPhase.CALIBRATION_SETUP) {
+            // Just simple averaging for initial center (optional)
+            const alpha = 0.1;
+            calibrationRef.current.center.x = (calibrationRef.current.center.x * (1 - alpha)) + (gazeX * alpha);
+            calibrationRef.current.center.y = (calibrationRef.current.center.y * (1 - alpha)) + (gazeY * alpha);
+        } else {
+            // Collect samples for active calibration phase
+            calibrationSamplesRef.current.push({ x: gazeX, y: gazeY });
+        }
         return; // Don't score during calibration
      }
 
@@ -296,7 +365,7 @@ export const useWarmupSession = () => {
      const distance = Math.sqrt(dx*dx + dy*dy);
 
      // Record gaze point
-     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED) {
+     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && !phase.startsWith('calibration')) {
         gazeHistoryRef.current.push({
             x: finalX,
             y: finalY,

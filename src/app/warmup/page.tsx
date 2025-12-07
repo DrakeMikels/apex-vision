@@ -11,7 +11,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const PHASE_INSTRUCTIONS: Record<WarmupPhase, string> = {
   [WarmupPhase.IDLE]: 'Get Ready',
-  [WarmupPhase.CALIBRATION]: 'Align your face with the camera',
+  [WarmupPhase.CALIBRATION_SETUP]: 'Align your face with the camera',
+  [WarmupPhase.CALIBRATION_CENTER]: 'Look at the CENTER dot',
+  [WarmupPhase.CALIBRATION_LEFT]: 'Look at the LEFT dot',
+  [WarmupPhase.CALIBRATION_RIGHT]: 'Look at the RIGHT dot',
   [WarmupPhase.SACCADE]: 'Snap your eyes quickly to the crosshair',
   [WarmupPhase.SMOOTH_PURSUIT]: 'Follow the crosshair smoothly with your eyes',
   [WarmupPhase.PERIPHERAL_1]: 'Keep looking center, notice the flashes (Level 1)',
@@ -55,7 +58,7 @@ function WarmupContent() {
       />
 
       {/* Target Component */}
-      {(phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) && (
+      {(phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION_SETUP) && (
         <>
           <Target 
             x={targetPosition?.x || 0.5} 
@@ -91,7 +94,7 @@ function WarmupContent() {
       </div>
 
       {/* Start / Calibration Screen */}
-      {(phase === WarmupPhase.IDLE || phase === WarmupPhase.CALIBRATION) && (
+      {(phase === WarmupPhase.IDLE || phase === WarmupPhase.CALIBRATION_SETUP) && (
         <div className="z-30 max-w-md w-full p-6 bg-[#0a0a0a]/90 rounded-xl border border-zinc-800 text-center backdrop-blur-sm box-glow">
           <h1 className="text-3xl font-bold text-white mb-4 bg-gradient-to-r from-[#ff0080] to-[#7928ca] bg-clip-text text-transparent">ApexVision Warmup</h1>
           
@@ -106,7 +109,7 @@ function WarmupContent() {
             </div>
           )}
 
-          {phase === WarmupPhase.CALIBRATION && (
+          {phase === WarmupPhase.CALIBRATION_SETUP && (
             <div className="space-y-4">
               <p className="text-zinc-400">
                 Face detected: <span className={trackingResult.faceDetected ? 'text-[#ff0080] font-bold' : 'text-red-500'}>

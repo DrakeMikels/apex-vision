@@ -1,6 +1,9 @@
 export enum WarmupPhase {
   IDLE = 'idle',
-  CALIBRATION = 'calibration',
+  CALIBRATION_SETUP = 'calibration_setup', // Align face
+  CALIBRATION_CENTER = 'calibration_center', // Look at center
+  CALIBRATION_LEFT = 'calibration_left', // Look left/corner
+  CALIBRATION_RIGHT = 'calibration_right', // Look right/corner
   SACCADE = 'saccade',
   SMOOTH_PURSUIT = 'smooth_pursuit',
   PERIPHERAL_1 = 'peripheral_1',
