@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { getRecommendations } from '@/core/engine/recommendations';
 import { WarmupScore } from '@/core/engine/types';
 import Link from 'next/link';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface SessionData {
   date: string;
@@ -204,7 +204,7 @@ function DashboardContent() {
                 <Card className="bg-[#0a0a0a] border-zinc-800 p-4">
                     <div className="h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
+                            <AreaChart data={chartData}>
                                 <defs>
                                     <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#ff0080" stopOpacity={0.8}/>
@@ -218,7 +218,7 @@ function DashboardContent() {
                                     contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#333', color: '#fff' }}
                                     itemStyle={{ color: '#ff0080' }}
                                 />
-                                <Line 
+                                <Area 
                                     type="monotone" 
                                     dataKey="score" 
                                     stroke="#ff0080" 
@@ -227,7 +227,7 @@ function DashboardContent() {
                                     activeDot={{ r: 8, fill: '#fff' }}
                                     fill="url(#scoreGradient)"
                                 />
-                            </LineChart>
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
