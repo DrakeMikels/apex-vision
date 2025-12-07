@@ -9,7 +9,7 @@ export default function Home() {
 
       <div className="max-w-md space-y-10 relative z-10">
         <div className="space-y-4">
-          <h1 className="text-6xl font-extrabold tracking-tighter">
+          <h1 className="text-[4.5rem] font-extrabold tracking-tighter">
             <span className="bg-gradient-to-r from-[#ff0080] to-[#7928ca] bg-clip-text text-transparent text-glow">
               ApexVision
             </span>
