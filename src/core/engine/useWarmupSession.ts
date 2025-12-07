@@ -79,15 +79,24 @@ export const useWarmupSession = () => {
   const animate = useCallback((time: number) => {
     if (phase === WarmupPhase.IDLE || phase === WarmupPhase.COMPLETED || phase === WarmupPhase.CALIBRATION) return;
 
+    // Reset start time if it hasn't been set for the current phase
+    // This logic was a bit flawed in the previous version if phases switched quickly
+    // But relying on the relative time 't' based on startTimeRef is safer if we reset startTimeRef on phase change.
+    
+    // Calculate elapsed time since this phase started
     const t = (time - startTimeRef.current) / 1000; // seconds
 
     if (phase === WarmupPhase.SMOOTH_PURSUIT) {
       // Circle path
-      const radius = 0.3;
-      const speed = 1;
+      // Use a simpler bounded path to ensure it never goes off screen
+      const radius = 0.35; // 35% of screen width/height radius
+      const speed = 1.5;
+      const centerX = 0.5;
+      const centerY = 0.5;
+      
       setTargetPosition({
-        x: 0.5 + radius * Math.cos(t * speed),
-        y: 0.5 + radius * Math.sin(t * speed),
+        x: centerX + radius * Math.cos(t * speed),
+        y: centerY + radius * Math.sin(t * speed),
       });
     } else if (phase === WarmupPhase.SACCADE) {
       // Jump every 1 second
@@ -135,6 +144,7 @@ export const useWarmupSession = () => {
 
   useEffect(() => {
     if (phase !== WarmupPhase.IDLE && phase !== WarmupPhase.COMPLETED && phase !== WarmupPhase.CALIBRATION) {
+      // Reset the start time whenever phase changes to ensure animations start from t=0
       startTimeRef.current = performance.now();
       requestRef.current = requestAnimationFrame(animate);
       return () => cancelAnimationFrame(requestRef.current);
