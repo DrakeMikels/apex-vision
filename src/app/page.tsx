@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/button';
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6 text-center relative overflow-hidden">
+      {/* 3D Grid Background */}
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+        <div className="absolute inset-0 grid-bg w-[200%] h-[200%] -left-[50%] -top-[50%]"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
+      </div>
+
       {/* Background Glow */}
       <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#ff0080] opacity-20 blur-[120px] rounded-full pointer-events-none"></div>
 
